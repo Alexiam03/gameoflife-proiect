@@ -2,6 +2,67 @@
 #include <stdlib.h>
 #include <string.h>
 
+FILE *fin;
+FILE *fout;
+
+struct lista{
+    int x, y;
+    struct lista* next;
+};
+typedef struct lista lista;
+
+struct stiva {
+    int generatia;
+    lista* headLista;
+    struct stiva* next;
+};
+typedef struct stiva stiva;
+
+void addAtBeginning ( lista ** head , int x, int y)
+{
+// *head , inceputul listei se va modifica
+// x, y,  informatia de stocat
+lista * newNode = ( lista *) malloc ( sizeof ( lista ));
+    newNode -> x = x;
+    newNode -> next = * head ;
+    * head = newNode ;
+}
+
+
+void addAtEnd ( lista ** head , int x, int y){
+    lista * aux = * head ;
+    lista * newNode = ( lista *) malloc ( sizeof ( lista ));
+    newNode -> x = x;
+    newNode -> y = y;         // stocheaza informatia nodului nou
+   
+    if (* head == NULL ) addAtBeginning (&* head , x, y);  // daca lista este vida , se modifica adresa de inceput
+    else { // cat timp nu s-a ajuns la final , se parcurge
+        while (aux -> next != NULL ) aux = aux -> next ;
+             // se adauga noul element in lista
+        aux -> next = newNode ;
+        newNode -> next = NULL ; // final lista
+    }
+}
+
+
+void push ( stiva **top , lista **head, int gen) {
+    stiva * newNode =( stiva *) malloc ( sizeof ( stiva ));
+    newNode -> generatia = gen;
+
+    lista *copie = NULL;
+    lista *elemCurent = *head;
+
+    while(elemCurent != NULL)
+    {
+        addAtEnd(&copie, elemCurent -> x, elemCurent -> y);
+        elemCurent = elemCurent -> next;
+    }
+    newNode ->headLista = *head;
+    newNode -> next = *top;
+    *top = newNode ;
+}
+
+
 void calculVecini(char **matrice, int row, int col, int **aux)
 {
     int nrVecini = 0, i, j;
@@ -141,7 +202,7 @@ void calculVecini(char **matrice, int row, int col, int **aux)
 
 }
 
-void game ( char **matrice, int **aux, int row, int col)
+void game ( char **matrice, int **aux, int row, int col, stiva *head)
 {
     int i, j;
 
@@ -150,13 +211,41 @@ void game ( char **matrice, int **aux, int row, int col)
             {//verificam daca respectiva casuta este vie/moarta si aplicam regulile jocului
                 if(matrice[i][j] == '+')
                     if(aux[i][j] == 3)
+                    {
+                        addAtEnd(&head -> headLista, i, j);  
                         matrice[i][j] = 'X';
+                    }
                 if(matrice[i][j] == 'X')
                     if(aux[i][j] < 2)
-                        matrice[i][j] = '+';
+                    {
+                        addAtEnd(&head -> headLista, i, j); 
+                         matrice[i][j] = '+';
+                    }
                     else if(aux[i][j] > 3)
+                    {
+                        addAtEnd(&head -> headLista, i, j); 
                         matrice[i][j] = '+';
+                    }
             }
+}
+
+void printStiva(stiva* top) {
+    if (top == NULL)
+        return;
+    else{
+        printStiva(top ->next);
+        fprintf(fout, "%d: ", top -> generatia);
+        lista *nodCurent = top -> headLista;
+
+        while(nodCurent != NULL)
+        {
+            fprintf(fout, "(%d %d) ", nodCurent -> x, nodCurent -> y);
+            nodCurent = nodCurent -> next;
+        }
+
+        fprintf(fout, "\n");
+
+    }
 }
 
 int main (int argc, const char* argv[])
@@ -164,8 +253,8 @@ int main (int argc, const char* argv[])
     int row, col, i, j, k, t;
     //row = nr de linii 
     //col = nr de coloane
-    FILE *fin;
-    FILE *fout;
+    stiva *nodStiva = NULL; //nodStiva = top-ul stivei
+    lista *nodLista = NULL; //nodLista = head-ul listei
 
     if(argc < 3)
     return 1;
@@ -190,7 +279,7 @@ int main (int argc, const char* argv[])
     int **aux; // aux e folosita pentru a stoca numarul de vecini egali cu X ai matricei
     char **matrice;
     
-    //alocam dinamic sspatiul din matrice
+    //alocam dinamic spatiul din matrice
     matrice = (char**)malloc(row * sizeof(char *));
     for( i = 0; i < row; i++)
         matrice[i] = (char *)malloc( col * sizeof(char));
@@ -206,35 +295,18 @@ int main (int argc, const char* argv[])
     for( i = 0; i < row; i++)
         aux[i] = (int *)malloc(col * sizeof(int));
  
-    //afisam matricea initiala
-    for( i = 0; i < row; i++)
+    int cnt = 1;
+    while(cnt <= k)
         {
-            for( j = 0; j < col; j++)
-                fprintf(fout, "%c", matrice[i][j]);
-            fprintf(fout, "\n");
-        }
-
-    fprintf(fout, "\n");
-
-    while(k)
-        {
+            push(&nodStiva, &nodLista, cnt);
             calculVecini(matrice, row, col, aux);
-            game(matrice, aux, row, col);
+            game(matrice, aux, row, col, nodStiva);
 
-            //afisam fiecare matrice noua generata
-            for( i = 0; i < row; i++)
-            {
-                for( j = 0; j < col; j++)
-                    fprintf(fout, "%c", matrice[i][j]);
-                fprintf(fout, "\n");
-            }
-
-            fprintf(fout, "\n");
-
-            k--;
+            cnt++;
         }
    
- 
+     //afisam stiva
+           printStiva(nodStiva);
 
     for( i = 0; i < row; i++)
         {
