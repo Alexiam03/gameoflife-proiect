@@ -24,6 +24,7 @@ void addAtBeginning ( lista ** head , int x, int y)
 // x, y,  informatia de stocat
 lista * newNode = ( lista *) malloc ( sizeof ( lista ));
     newNode -> x = x;
+    newNode -> y = y;
     newNode -> next = * head ;
     * head = newNode ;
 }
@@ -239,7 +240,7 @@ void printStiva(stiva* top) {
 
         while(nodCurent != NULL)
         {
-            fprintf(fout, "(%d %d) ", nodCurent -> x, nodCurent -> y);
+            fprintf(fout, "(%d %d); ", nodCurent -> x, nodCurent -> y);
             nodCurent = nodCurent -> next;
         }
 
