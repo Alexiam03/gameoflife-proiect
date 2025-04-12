@@ -231,6 +231,7 @@ void game ( char **matrice, int **aux, int row, int col, stiva *head)
 }
 
 void printStiva(stiva* top) {
+    //afisare recursiva pentru ca listele sa fie in ordine crescatoare
     if (top == NULL)
         return;
     else{
@@ -309,6 +310,7 @@ int main (int argc, const char* argv[])
      //afisam stiva
            printStiva(nodStiva);
 
+    //eliberam memoria pentru matrici si stiva de liste
     for( i = 0; i < row; i++)
         {
             free(matrice[i]);
@@ -317,6 +319,13 @@ int main (int argc, const char* argv[])
 
     free(matrice);
     free(aux);
+    while (nodStiva != NULL) 
+    {
+        stiva* temp = nodStiva;
+        freeLista(nodStiva->headLista); 
+        nodStiva = nodStiva->next;
+        free(temp);
+    }
    // fclose(fin);
     fclose(fout);
 
