@@ -319,6 +319,20 @@ void freeMatrice(char** matrice, int row)
     free(matrice);
 }
 
+void freeArbore(arbore* nod) 
+{
+    //daca am ajuns la final
+    if (nod == NULL)
+        return;
+
+    freeLista(nod->head);  // eliberam lista
+    //apelam recursiv pe stanga si apoi pe dreapta
+    freeArbore(nod->left);  
+    freeArbore(nod->right); 
+
+    free(nod);  // eliberam nodul 
+}
+
 void creareArbore(arbore *nodCurent, char **matrice, int **aux, int row, int col, int k)
 {
     //functia nu doar creeaza pe rand fiecare nod al arborelui, dar aplica regulile jocului si apoi afiseaza matricile
@@ -505,6 +519,7 @@ int main(int argc, const char *argv[])
         free(temp);
     }
 
+    freeArbore(nodArbore);
     free(matrice);
     free(aux);
     fclose(fout);
