@@ -20,6 +20,13 @@ struct stiva
 };
 typedef struct stiva stiva;
 
+struct arbore
+{
+    lista *head; //head-ul listei fiecarui nod din arbore
+    struct arbore *left, *right;
+};
+typedef struct arbore arbore;
+
 void addAtBeginning(lista **head, int x, int y)
 {
     // *head , inceputul listei se va modifica
@@ -34,14 +41,15 @@ void addAtBeginning(lista **head, int x, int y)
 void addAtEnd(lista **head, int x, int y)
 {
     lista *aux = *head;
-    lista *newNode = (lista *)malloc(sizeof(lista));
-    newNode->x = x;
-    newNode->y = y; // stocheaza informatia nodului nou
 
     if (*head == NULL)
         addAtBeginning(head, x, y); // daca lista este vida , se modifica adresa de inceput
     else
-    { // cat timp nu s-a ajuns la final , se parcurge
+    { 
+        lista *newNode = (lista *)malloc(sizeof(lista));
+        newNode->x = x;
+        newNode->y = y; // stocheaza informatia nodului nou
+        // cat timp nu s-a ajuns la final , se parcurge
         while (aux->next != NULL)
             aux = aux->next;
         // se adauga noul element in lista
@@ -63,7 +71,7 @@ void push(stiva **top, lista **head, int gen)
         addAtEnd(&copie, elemCurent->x, elemCurent->y);
         elemCurent = elemCurent->next;
     }
-    newNode->headLista = *head;
+    newNode->headLista = copie;
     newNode->next = *top;
     *top = newNode;
 }
@@ -205,8 +213,24 @@ void calculVecini(char **matrice, int row, int col, int **aux)
     aux[row - 1][col - 1] = nrVecini;
 }
 
-void game(char **matrice, int **aux, int row, int col, stiva *head, int test)
+void gameB(char **matrice, int **aux, int row, int col, arbore *root, int test)
 {
+    //functia gameB implementeaza regulile noi
+    int i, j;
+
+    for( i = 0; i < row; i++)
+        for(j = 0; j < col; j++)
+        {
+            if((matrice[i][j] == '+' ) && (aux[i][j] == 2)) //noile reguli ale jocului
+               {
+                matrice[i][j] = 'X';
+                addAtEnd(&root->head, i, j); //adaugam coordonatele la finalul listei
+               }
+        }
+}
+
+void game(char **matrice, int **aux, int row, int col, stiva *head, arbore *root, int test)
+{ //functia game aplica regulile clasice ale jocului game of life
     int i, j;
 
     for (i = 0; i < row; i++)
@@ -216,7 +240,10 @@ void game(char **matrice, int **aux, int row, int col, stiva *head, int test)
                 if (aux[i][j] == 3)
                 {
                     if( test == 2)
-                        addAtEnd(&head->headLista, i, j);
+                        addAtEnd(&head->headLista, i, j); //adauga la finalul listei coordonatele casutei modificate
+                    if( test == 3)
+                        addAtEnd (&root->head, i, j); //adauga la finalul listei coordonatele casutei modificate
+                    
                     matrice[i][j] = 'X';
                 }
             if (matrice[i][j] == 'X')
@@ -224,12 +251,16 @@ void game(char **matrice, int **aux, int row, int col, stiva *head, int test)
                 {
                     if( test == 2)
                         addAtEnd(&head->headLista, i, j);
+                    if( test == 3)
+                        addAtEnd (&root->head, i, j);
                     matrice[i][j] = '+';
                 }
                 else if (aux[i][j] > 3)
                 {
                     if( test == 2)
                         addAtEnd(&head->headLista, i, j);
+                    if( test == 3)
+                        addAtEnd (&root->head, i, j);
                     matrice[i][j] = '+';
                 }
         }
@@ -265,6 +296,86 @@ void freeLista(lista *head)
     }
 }
 
+char **copiazaMatrice (char **matrice, int row, int col)
+{//functie clasica de copierea unei matrici, folosita la task 3
+    char **copie = (char**)malloc( row * sizeof(char*));
+
+    for(int i = 0; i < row; i++)
+    {
+        copie[i] = (char*)malloc(col * sizeof(char));
+        for(int j = 0; j < col; j++)
+            copie[i][j] = matrice[i][j];
+    }
+
+    return copie;
+}
+
+void freeMatrice(char** matrice, int row)
+{
+    //elibereaza memoria din matricea de tip char
+
+    for (int i = 0; i < row; i++)
+        free(matrice[i]);
+    free(matrice);
+}
+
+void creareArbore(arbore *nodCurent, char **matrice, int **aux, int row, int col, int k)
+{
+    //functia nu doar creeaza pe rand fiecare nod al arborelui, dar aplica regulile jocului si apoi afiseaza matricile
+
+    //daca am ajuns la final
+    if (k == 0 || nodCurent == NULL)
+        return;
+    
+    // pt noua regula = partea stanga a arborelui
+    char **matriceStanga = copiazaMatrice(matrice, row, col);
+
+    nodCurent->left = (arbore *)malloc(sizeof(arbore));
+    nodCurent->left->head = NULL;
+    nodCurent->left->left = NULL;
+    nodCurent->left->right = NULL;
+
+    calculVecini(matriceStanga, row, col, aux);
+    gameB(matriceStanga, aux, row, col, nodCurent->left, 3);
+    //la fiecare apel recursiv, matricea pe stanga este afisata
+    for (int i = 0; i < row; i++) 
+    {
+        for (int j = 0; j < col; j++)
+            fprintf(fout, "%c", matriceStanga[i][j]);
+        fprintf(fout, "\n");
+    }
+    fprintf(fout, "\n");
+    
+    //apelam recursiv pe stanga si eliberam memoria matricei copiate
+    creareArbore(nodCurent->left, matriceStanga, aux, row, col, k - 1);
+    freeMatrice(matriceStanga, row);
+
+
+    // pt regula normala = partea dreapta a arborelui
+    char **matriceDreapta = copiazaMatrice(matrice, row, col);
+
+    nodCurent->right = (arbore *)malloc(sizeof(arbore));
+    nodCurent->right->head = NULL;
+    nodCurent->right->left = NULL;
+    nodCurent->right->right = NULL;
+
+    calculVecini(matriceDreapta, row, col, aux);
+    game(matriceDreapta, aux, row, col, NULL, nodCurent->right, 3);
+    //la fiecare apel recursiv, matricea pe dreapta este afisata
+    for (int i = 0; i < row; i++) 
+    {
+        for (int j = 0; j < col; j++)
+            fprintf(fout, "%c", matriceDreapta[i][j]);
+        fprintf(fout, "\n");
+    }
+    fprintf(fout, "\n");
+
+    //apelam recursiv pe dreapta si eliberam memoria matricei copiate 
+    creareArbore(nodCurent->right, matriceDreapta, aux, row, col, k - 1);
+    freeMatrice(matriceDreapta, row);
+}
+
+
 int main(int argc, const char *argv[])
 {
     int row, col, i, j, k, t;
@@ -272,6 +383,7 @@ int main(int argc, const char *argv[])
     // col = nr de coloane
     stiva *nodStiva = NULL; // nodStiva = top-ul stivei
     lista *nodLista = NULL; // nodLista = head-ul listei
+    arbore *nodArbore = NULL; // nodArbore = root-ul arborelui
 
     if (argc < 3)
         return 1;
@@ -290,27 +402,36 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    fscanf(fin, "%d", &t);
-    fscanf(fin, "%d %d", &row, &col);
-    fscanf(fin, "%d", &k);
+    fscanf(fin, "%d", &t); //citim numarul task-ului
+    fscanf(fin, "%d %d", &row, &col); //citim nr de linii si coloane
+    fscanf(fin, "%d", &k); //citim nr de generatii
     int **aux; // aux e folosita pentru a stoca numarul de vecini egali cu X ai matricei
-    char **matrice;
+    char **matrice; // = matricea initiala
+
 
     // alocam dinamic spatiul din matrice
     matrice = (char **)malloc(row * sizeof(char *));
     for (i = 0; i < row; i++)
         matrice[i] = (char *)malloc(col * sizeof(char));
 
-    // Introduceti matricea
+    // citim matricea initiala
     for (i = 0; i < row; i++)
         for (j = 0; j < col; j++)
             fscanf(fin, " %c", &matrice[i][j]);
 
     fclose(fin);
 
+    //alocam dinamic spatiul din matricea aux = matricea de vecini
     aux = (int **)malloc(row * sizeof(int *));
     for (i = 0; i < row; i++)
         aux[i] = (int *)malloc(col * sizeof(int));
+
+
+    //facem un prim nod al arborelui folosit doar in task-ul 3
+    nodArbore = ( arbore *) malloc ( sizeof ( arbore ));
+    nodArbore -> head = NULL;
+    nodArbore -> left = NULL;
+    nodArbore -> right = NULL;
 
     if (t == 1)
     {
@@ -321,13 +442,12 @@ int main(int argc, const char *argv[])
                 fprintf(fout, "%c", matrice[i][j]);
             fprintf(fout, "\n");
         }
-
         fprintf(fout, "\n");
 
         while (k)
         {
             calculVecini(matrice, row, col, aux);
-            game(matrice, aux, row, col, nodStiva, 1);
+            game(matrice, aux, row, col, nodStiva, nodArbore->right, 1); //chiar daca apelam nodStiva si nodArbore si t este egal cu 1, ele nu vor fi afectate deoarece verificam in game care este numarul task-ului, si aceste noduri vor fi folosite doar pentru task2 si task3
 
             // afisam fiecare matrice noua generata
             for (i = 0; i < row; i++)
@@ -336,26 +456,38 @@ int main(int argc, const char *argv[])
                     fprintf(fout, "%c", matrice[i][j]);
                 fprintf(fout, "\n");
             }
-
             fprintf(fout, "\n");
 
-            k--;
+            k--; //scadem nr generatiilor
         }
     }
     else if (t == 2)
     {
         int cnt = 1;
-        while (cnt <= k)
+        while (cnt <= k) // k = nr de generatii
         {
             push(&nodStiva, &nodLista, cnt);
             calculVecini(matrice, row, col, aux);
-            game(matrice, aux, row, col, nodStiva, 2);
+            game(matrice, aux, row, col, nodStiva, nodArbore->right, 2);
 
             cnt++;
         }
 
         // afisam stiva
         printStiva(nodStiva);
+    }
+    else if (t == 3)
+    {
+        //afisam matricea initiala
+        for (i = 0; i < row; i++)
+        {
+            for (j = 0; j < col; j++)
+                fprintf(fout, "%c", matrice[i][j]);
+            fprintf(fout, "\n");
+        }
+        fprintf(fout, "\n");
+
+        creareArbore(nodArbore, matrice, aux, row, col, k);
     }
 
     // eliberam memoria pentru matrici si stiva
