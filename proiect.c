@@ -27,6 +27,12 @@ struct arbore
 };
 typedef struct arbore arbore;
 
+struct graf
+{
+    int x, y; //retinem in fiecare nod din graf coordonatele din matrice
+};
+typedef struct graf graf;
+
 void addAtBeginning(lista **head, int x, int y)
 {
     // *head , inceputul listei se va modifica
@@ -389,6 +395,14 @@ void creareArbore(arbore *nodCurent, char **matrice, int **aux, int row, int col
     freeMatrice(matriceDreapta, row);
 }
 
+int noduriVecine(graf a, graf b)
+{
+    if( (abs(a.x - b.x) <= 1) && (abs(a.x - b.x) != 0) ) //daca diferenta e mai mica sau egala cu 1 inseamna ca se afla la maxim o casuta distanta => sunt vecine
+        if( (abs(a.y - b.y) <= 1) && (abs(a.y - b.y) != 0))
+            return 1;
+    
+    return 0;
+}
 
 int main(int argc, const char *argv[])
 {
@@ -401,14 +415,12 @@ int main(int argc, const char *argv[])
 
     if (argc < 3)
         return 1;
-
     fin = fopen(argv[1], "r");
     if (fin == NULL)
     {
         printf("Nu s-a putut deschide fisierul");
         return 0;
     }
-
     fout = fopen(argv[2], "w");
     if (fout == NULL)
     {
@@ -416,6 +428,7 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
+    
     fscanf(fin, "%d", &t); //citim numarul task-ului
     fscanf(fin, "%d %d", &row, &col); //citim nr de linii si coloane
     fscanf(fin, "%d", &k); //citim nr de generatii
@@ -490,7 +503,7 @@ int main(int argc, const char *argv[])
         // afisam stiva
         printStiva(nodStiva);
     }
-    else if (t == 3)
+    else if (t == 3 || t == 4)
     {
         //afisam matricea initiala
         for (i = 0; i < row; i++)
@@ -502,7 +515,36 @@ int main(int argc, const char *argv[])
         fprintf(fout, "\n");
 
         creareArbore(nodArbore, matrice, aux, row, col, k);
+
+        if( t == 4)
+        {
+            graf *noduriGraf = NULL; //retinem toate coordonatele celulelor vii din matrice
+            noduriGraf = (graf *)malloc(row * col * sizeof(graf));
+
+            int n = 0; //nr de elemnte din vectorul noduriGraf
+
+            for(i = 0; i < row; i++)
+                for(j = 0; j < col; j++)
+                    if(matrice[i][j] == 'X')
+                    {
+                        noduriGraf[n].x = i;
+                        noduriGraf[n].y = j;
+                        n++;
+                    }
+
+            int **matriceAdiacenta = NULL;
+            matriceAdiacenta = (int **)malloc(row * sizeof(int *));
+            for (i = 0; i < row; i++)
+                matriceAdiacenta[i] = (int *)malloc(col * sizeof(int));
+
+            for(i = 0; i < row; i++)
+                    for(j = 0; j < col; j++)
+                        if(noduriVecine(noduriGraf[i], noduriGraf[j]) == 1)
+                            if(i != j)
+                                matriceAdiacenta[i][j] = 1;
+        }
     }
+
 
     // eliberam memoria pentru matrici si stiva
     for (i = 0; i < row; i++)
