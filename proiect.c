@@ -517,7 +517,7 @@ int main(int argc, const char *argv[])
         creareArbore(nodArbore, matrice, aux, row, col, k);
 
         if( t == 4)
-        {
+        {//nu e complet
             graf *noduriGraf = NULL; //retinem toate coordonatele celulelor vii din matrice
             noduriGraf = (graf *)malloc(row * col * sizeof(graf));
 
